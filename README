@@ -1,0 +1,7 @@
+step 1: run add_face.py file 
+            To add new add_face
+
+step 2: run command :streamlit run test.py
+
+to take attendance Press "P or p"
+to exit Press "a"
