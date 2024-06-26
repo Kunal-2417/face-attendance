@@ -3,20 +3,18 @@ from sklearn.preprocessing import LabelEncoder
 import cv2
 import pickle
 import numpy as np
-import os 
+import os
 import csv
 import time
 from datetime import datetime
-
 from win32com.client import Dispatch
 
-def speak(str1):
-    speak = Dispatch("SAPI.SpVoice")  
-    speak.Speak(str1)
-
+def speak(text):
+    speak = Dispatch("SAPI.SpVoice")
+    speak.Speak(text)
 
 video = cv2.VideoCapture(0)
-facedetect = cv2.CascadeClassifier("data/haarcascade_frontalface_default.xml") 
+facedetect = cv2.CascadeClassifier("data/haarcascade_frontalface_default.xml")
 
 with open("data/names.pkl", "rb") as f:
     LABELS = pickle.load(f)
@@ -34,11 +32,10 @@ knn = KNeighborsClassifier(n_neighbors=5)
 # Use the encoded labels for fitting the model
 knn.fit(FACES, encoded_labels)
 
+imgbackground = cv2.imread("./Untitled.png")
 
-imgbackground=cv2.imread("./Untitled.png")
+COL_NAME = ['NAME', 'TIME']
 
-COL_NAME=['NAME','TIME']
-   
 while True:
     ret, frame = video.read()
     col = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -51,20 +48,21 @@ while True:
     )
 
     for (x, y, w, h) in faces:
-        crop_img = frame[y:y+h, x:x+w]
+        crop_img = frame[y:y + h, x:x + w]
         resized_img = cv2.resize(crop_img, (50, 50))  # Resize to match the classifier's expectations
         output = knn.predict(resized_img.flatten().reshape(1, -1))  # Flatten and reshape to 1D array
         predicted_label = label_encoder.inverse_transform(output)
-        ts=time.time()
-        date=datetime.fromtimestamp(ts).strftime("%d-%m-%y")
-        timestamp=datetime.fromtimestamp(ts).strftime("%H-%M-%S")
-        exist=os.path.isfile("Attendance/Attendance_"+date+".csv")
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 1)
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (50, 50, 255), 2)
-        cv2.rectangle(frame, (x, y-40), (x+w, y), (50, 50, 255), -1)
-        cv2.putText(frame, str(predicted_label[0]), (x, y-15), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0))
-        attendance=[str(predicted_label[0]),str(timestamp)]
+        ts = time.time()
+        date = datetime.fromtimestamp(ts).strftime("%d-%m-%y")
+        timestamp = datetime.fromtimestamp(ts).strftime("%H-%M-%S")
+        exist = os.path.isfile("Attendance/Attendance_" + date + ".csv")
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (50, 50, 255), 2)
+        cv2.rectangle(frame, (x, y - 40), (x + w, y), (50, 50, 255), -1)
+        cv2.putText(frame, str(predicted_label[0]), (x, y - 15), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0))
+        attendance = [str(predicted_label[0]), str(timestamp)]
+
     new_width = 420  # Set your desired width
     new_height = 320  # Set your desired height
 
@@ -74,25 +72,23 @@ while True:
     x_position = 560  # Example X-axis shift
     y_position = 205  # Example Y-axis shift
 
-    imgbackground[y_position:y_position+new_height, x_position:x_position+new_width] = frame_resized
+    imgbackground[y_position:y_position + new_height, x_position:x_position + new_width] = frame_resized
 
     cv2.imshow("Frame", imgbackground)
 
     k = cv2.waitKey(1)
-    if k==ord('p' or 'P'):
+    if k == ord('p') or k == ord('P'):
         speak("Attendance Taken..")
         time.sleep(5)
         if exist:
-                with open ("Attendance/Attendance_"+date+".csv","+a") as csvfile:
-                    writer=csv.writer(csvfile)
-                    writer.writerow(attendance)
-                csvfile.close()
+            with open("Attendance/Attendance_" + date + ".csv", "+a") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(attendance)
         else:
-            with open ("Attendance/Attendance_"+date+".csv","+a") as csvfile:
-                writer=csv.writer(csvfile)
+            with open("Attendance/Attendance_" + date + ".csv", "+a") as csvfile:
+                writer = csv.writer(csvfile)
                 writer.writerow(COL_NAME)
                 writer.writerow(attendance)
-            csvfile.close()
     if k == ord("a"):
         break
 
